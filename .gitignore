@@ -26,3 +26,6 @@ Thumbs.db
 
 # Electron
 .electron/
+
+# Claude cache
+.claude/
