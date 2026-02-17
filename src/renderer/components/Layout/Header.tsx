@@ -1,3 +1,4 @@
+import { Sun, Moon, Scroll, PanelLeft, ArrowLeftRight, Minus, Plus } from 'lucide-react'
 import { useSettingsStore } from '../../stores/settings'
 import { useReaderStore } from '../../stores/reader'
 
@@ -5,7 +6,7 @@ export function Header() {
   const { theme, fontSize, cycleTheme, increaseFontSize, decreaseFontSize, toggleSidebar } = useSettingsStore()
   const { currentBook, currentChapter, showComparison, toggleComparison } = useReaderStore()
 
-  const themeIcon = theme === 'light' ? '☀️' : theme === 'dark' ? '🌙' : '📜'
+  const ThemeIcon = theme === 'light' ? Sun : theme === 'dark' ? Moon : Scroll
 
   return (
     <header
@@ -23,7 +24,7 @@ export function Header() {
           className="p-1.5 rounded hover:opacity-70 transition-opacity"
           title="Toggle Sidebar"
         >
-          ☰
+          <PanelLeft size={18} />
         </button>
         <span className="font-bold text-lg">Glyph</span>
         {currentBook && (
@@ -46,7 +47,7 @@ export function Header() {
             style={{ backgroundColor: showComparison ? 'var(--accent)' : undefined }}
             title="Toggle Comparison View"
           >
-            ⚖️ Compare
+            <ArrowLeftRight size={14} className="inline mr-1" /> Compare
           </button>
         )}
 
@@ -57,7 +58,7 @@ export function Header() {
             className="px-2 py-1 rounded hover:opacity-70 transition-opacity"
             title="Decrease Font Size"
           >
-            A-
+            <Minus size={14} />
           </button>
           <span className="text-sm w-8 text-center">{fontSize}</span>
           <button
@@ -65,7 +66,7 @@ export function Header() {
             className="px-2 py-1 rounded hover:opacity-70 transition-opacity"
             title="Increase Font Size"
           >
-            A+
+            <Plus size={14} />
           </button>
         </div>
 
@@ -75,7 +76,7 @@ export function Header() {
           className="p-2 rounded hover:opacity-70 transition-opacity"
           title={`Theme: ${theme}`}
         >
-          {themeIcon}
+          <ThemeIcon size={18} />
         </button>
       </div>
     </header>

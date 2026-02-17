@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron'
-import { join } from 'path'
-import { readdir, readFile, stat } from 'fs/promises'
+import { join, dirname } from 'path'
+import { readdir, readFile, stat, access } from 'fs/promises'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -117,4 +117,37 @@ ipcMain.handle('fs:isBabelfishProject', async (_, dirPath: string) => {
   } catch {
     return false
   }
+})
+
+// Read and parse toc.json from a folder
+ipcMain.handle('fs:readTocJson', async (_, dirPath: string) => {
+  try {
+    const tocPath = join(dirPath, 'toc.json')
+    const content = await readFile(tocPath, 'utf-8')
+    return JSON.parse(content)
+  } catch {
+    return null
+  }
+})
+
+// Resolve image path relative to chapter or book root
+ipcMain.handle('fs:resolveImagePath', async (_, src: string, chapterFilePath: string, bookRoot: string) => {
+  const chapterDir = dirname(chapterFilePath)
+
+  const candidates = [
+    join(chapterDir, src),
+    join(bookRoot, 'images', src),
+    join(bookRoot, src),
+  ]
+
+  for (const candidate of candidates) {
+    try {
+      await access(candidate)
+      return candidate
+    } catch {
+      // try next
+    }
+  }
+
+  return null
 })

@@ -32,7 +32,7 @@ body {
   padding: 0;
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  font-family: Georgia, Cambria, 'Times New Roman', serif;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   transition: background-color 0.3s, color 0.3s;
 }
 
@@ -56,6 +56,7 @@ body {
 
 /* Markdown content styles */
 .markdown-content {
+  font-family: 'Literata', Georgia, Cambria, 'Times New Roman', serif;
   line-height: 1.8;
   max-width: 65ch;
   margin: 0 auto;
@@ -144,8 +145,8 @@ body {
 }
 
 .markdown-content th {
-  background: var(--bg-secondary);
-  font-weight: bold;
+  background: none;
+  font-weight: normal;
 }
 
 .markdown-content a {
@@ -162,6 +163,31 @@ body {
   height: auto;
   margin: 1rem auto;
   display: block;
+}
+
+/* TOC tree styles */
+.toc-tree {
+  background-color: var(--bg-primary);
+  border-bottom: 1px solid var(--bg-secondary);
+}
+
+.toc-entry:hover {
+  background-color: var(--bg-secondary);
+  color: var(--accent) !important;
+}
+
+/* Image placeholder */
+.image-placeholder {
+  display: block;
+  text-align: center;
+  padding: 2rem;
+  margin: 1rem 0;
+  background: var(--bg-secondary);
+  border: 1px dashed var(--text-secondary);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-style: italic;
+  font-size: 0.9em;
 }
 
 /* Highlight styles */

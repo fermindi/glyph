@@ -32,3 +32,20 @@ export interface ReadingProgress {
   scrollPosition: number
   lastRead: string
 }
+
+export interface TocEntry {
+  level: number
+  title: string
+  anchor: string
+  children: TocEntry[]
+}
+
+export interface TocJson {
+  title: string
+  author?: string
+  language?: string
+  chapters: Array<{
+    file: string
+    title: string
+  }>
+}

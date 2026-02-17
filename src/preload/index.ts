@@ -10,6 +10,9 @@ contextBridge.exposeInMainWorld('api', {
   readDir: (path: string) => ipcRenderer.invoke('fs:readDir', path),
   readFile: (path: string) => ipcRenderer.invoke('fs:readFile', path),
   isBabelfishProject: (path: string) => ipcRenderer.invoke('fs:isBabelfishProject', path),
+  readTocJson: (path: string) => ipcRenderer.invoke('fs:readTocJson', path),
+  resolveImagePath: (src: string, chapterFilePath: string, bookRoot: string) =>
+    ipcRenderer.invoke('fs:resolveImagePath', src, chapterFilePath, bookRoot),
 })
 
 // Type declarations
@@ -21,6 +24,8 @@ declare global {
       readDir: (path: string) => Promise<FileEntry[]>
       readFile: (path: string) => Promise<string | null>
       isBabelfishProject: (path: string) => Promise<boolean>
+      readTocJson: (path: string) => Promise<import('../shared/types').TocJson | null>
+      resolveImagePath: (src: string, chapterFilePath: string, bookRoot: string) => Promise<string | null>
     }
   }
 }

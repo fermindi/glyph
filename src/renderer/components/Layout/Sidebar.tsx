@@ -1,9 +1,11 @@
 import { useSettingsStore } from '../../stores/settings'
 import { useReaderStore, Chapter } from '../../stores/reader'
+import { ArrowLeft, ArrowRight, Palette, Plus, Minus } from 'lucide-react'
+import type { TocEntry } from '../../../shared/types'
 
 export function Sidebar() {
   const { sidebarVisible } = useSettingsStore()
-  const { currentBook, currentChapter, setCurrentChapter } = useReaderStore()
+  const { currentBook, currentChapter, setCurrentChapter, chapterToc, activeAnchor } = useReaderStore()
 
   if (!sidebarVisible) return null
 
@@ -39,21 +41,25 @@ export function Sidebar() {
         </h3>
         <nav className="pb-4">
           {currentBook?.chapters.map((chapter) => (
-            <ChapterItem
-              key={chapter.id}
-              chapter={chapter}
-              isActive={currentChapter?.id === chapter.id}
-              onClick={() => setCurrentChapter(chapter)}
-            />
+            <div key={chapter.id}>
+              <ChapterItem
+                chapter={chapter}
+                isActive={currentChapter?.id === chapter.id}
+                onClick={() => setCurrentChapter(chapter)}
+              />
+              {currentChapter?.id === chapter.id && chapterToc.length > 0 && (
+                <TocTree entries={flattenH1(chapterToc)} activeAnchor={activeAnchor} />
+              )}
+            </div>
           ))}
         </nav>
       </div>
 
       {/* Keyboard shortcuts help */}
-      <div className="p-4 text-xs opacity-50 border-t" style={{ borderColor: 'var(--bg-primary)' }}>
-        <p>← → Navigate chapters</p>
-        <p>D: Toggle theme</p>
-        <p>+/- Font size</p>
+      <div className="p-4 text-xs opacity-50 border-t flex flex-col gap-1" style={{ borderColor: 'var(--bg-primary)' }}>
+        <span className="flex items-center gap-1.5"><ArrowLeft size={11} /><ArrowRight size={11} /> Chapters</span>
+        <span className="flex items-center gap-1.5"><Palette size={11} /> <kbd className="px-1 rounded" style={{ backgroundColor: 'var(--bg-primary)' }}>D</kbd> Theme</span>
+        <span className="flex items-center gap-1.5"><Minus size={11} /><Plus size={11} /> Font size</span>
       </div>
     </aside>
   )
@@ -81,5 +87,57 @@ function ChapterItem({
     >
       {chapter.title}
     </button>
+  )
+}
+
+// Skip h1 entries (already shown as chapter title), promote their children
+function flattenH1(entries: TocEntry[]): TocEntry[] {
+  const result: TocEntry[] = []
+  for (const entry of entries) {
+    if (entry.level === 1) {
+      result.push(...entry.children)
+    } else {
+      result.push(entry)
+    }
+  }
+  return result
+}
+
+function TocTree({ entries, activeAnchor }: { entries: TocEntry[]; activeAnchor: string | null }) {
+  return (
+    <div className="toc-tree">
+      {entries.map((entry) => (
+        <TocNode key={entry.anchor} entry={entry} activeAnchor={activeAnchor} />
+      ))}
+    </div>
+  )
+}
+
+function TocNode({ entry, activeAnchor }: { entry: TocEntry; activeAnchor: string | null }) {
+  const isActive = activeAnchor === entry.anchor
+
+  const handleClick = () => {
+    const el = document.getElementById(entry.anchor)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
+
+  return (
+    <>
+      <button
+        onClick={handleClick}
+        className={`toc-entry w-full text-left text-xs py-1 transition-opacity ${isActive ? 'font-semibold' : 'hover:opacity-80'}`}
+        style={{
+          paddingLeft: `${(entry.level - 2) * 0.75 + 1.5}rem`,
+          color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
+        }}
+      >
+        {entry.title}
+      </button>
+      {entry.children.length > 0 && (
+        <TocTree entries={entry.children} activeAnchor={activeAnchor} />
+      )}
+    </>
   )
 }

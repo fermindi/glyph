@@ -29,3 +29,7 @@ Thumbs.db
 
 # Claude cache
 .claude/
+
+# PWN
+.ai/state.json
+.ai/config/notifications.json

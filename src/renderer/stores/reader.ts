@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import type { TocEntry } from '../../shared/types'
+import { parseHeadings, stripAnchorSyntax, buildAnchorMap } from '../utils/toc-parser'
 
 export interface Chapter {
   id: string
@@ -29,6 +31,9 @@ interface ReaderState {
   currentBook: Book | null
   currentChapter: Chapter | null
   chapterContent: string
+  chapterToc: TocEntry[]
+  anchorMap: Map<string, string>
+  activeAnchor: string | null
   translationContent: string | null
   showComparison: boolean
   readingProgress: Record<string, ReadingProgress>
@@ -38,6 +43,7 @@ interface ReaderState {
   setCurrentChapter: (chapter: Chapter | null) => void
   setChapterContent: (content: string) => void
   setTranslationContent: (content: string | null) => void
+  setActiveAnchor: (anchor: string | null) => void
   toggleComparison: () => void
   nextChapter: () => void
   previousChapter: () => void
@@ -51,6 +57,9 @@ export const useReaderStore = create<ReaderState>()(
       currentBook: null,
       currentChapter: null,
       chapterContent: '',
+      chapterToc: [],
+      anchorMap: new Map(),
+      activeAnchor: null,
       translationContent: null,
       showComparison: false,
       readingProgress: {},
@@ -59,15 +68,20 @@ export const useReaderStore = create<ReaderState>()(
 
       setCurrentChapter: async (chapter) => {
         if (!chapter) {
-          set({ currentChapter: null, chapterContent: '', translationContent: null })
+          set({ currentChapter: null, chapterContent: '', chapterToc: [], anchorMap: new Map(), translationContent: null })
           return
         }
 
         // Load chapter content
-        const content = await window.api.readFile(chapter.path)
+        const rawContent = await window.api.readFile(chapter.path)
+        const content = rawContent ? stripAnchorSyntax(rawContent) : ''
+        const toc = rawContent ? parseHeadings(rawContent) : []
+        const anchors = rawContent ? buildAnchorMap(rawContent) : new Map()
         set({
           currentChapter: chapter,
-          chapterContent: content || '',
+          chapterContent: content,
+          chapterToc: toc,
+          anchorMap: anchors,
         })
 
         // Load translation if in comparison mode and it's a Babelfish project
@@ -83,6 +97,8 @@ export const useReaderStore = create<ReaderState>()(
       },
 
       setChapterContent: (content) => set({ chapterContent: content }),
+
+      setActiveAnchor: (anchor) => set({ activeAnchor: anchor }),
 
       setTranslationContent: (content) => set({ translationContent: content }),
 
@@ -137,38 +153,56 @@ export const useReaderStore = create<ReaderState>()(
         // Check if it's a Babelfish project
         const isBabelfish = await window.api.isBabelfishProject(path)
 
-        // Read directory structure
-        const entries = await window.api.readDir(path)
+        // Try to read toc.json
+        const tocJson = await window.api.readTocJson(path)
 
-        // Find markdown files recursively
-        const chapters: Chapter[] = []
-        const processDir = async (dirPath: string, prefix = '') => {
-          const items = await window.api.readDir(dirPath)
+        let chapters: Chapter[] = []
+        let bookTitle = path.split(/[/\\]/).pop() || 'Book'
+        let bookAuthor: string | undefined
 
-          for (const item of items) {
-            if (item.isDirectory) {
-              await processDir(item.path, `${prefix}${item.name}/`)
-            } else if (item.name.endsWith('.md')) {
-              chapters.push({
-                id: item.path,
-                title: item.name.replace('.md', '').replace(/_/g, ' '),
-                path: item.path,
-              })
+        if (tocJson) {
+          // Use toc.json for chapter order and titles
+          bookTitle = tocJson.title || bookTitle
+          bookAuthor = tocJson.author
+          for (const ch of tocJson.chapters) {
+            chapters.push({
+              id: `${path}/${ch.file}`,
+              title: ch.title,
+              path: `${path}/${ch.file}`,
+            })
+          }
+        } else {
+          // Fallback: scan directory for .md files
+          const processDir = async (dirPath: string, prefix = '') => {
+            const items = await window.api.readDir(dirPath)
+
+            for (const item of items) {
+              if (item.isDirectory) {
+                await processDir(item.path, `${prefix}${item.name}/`)
+              } else if (item.name.endsWith('.md')) {
+                chapters.push({
+                  id: item.path,
+                  title: item.name.replace('.md', '').replace(/_/g, ' '),
+                  path: item.path,
+                })
+              }
             }
           }
+
+          // For Babelfish, read from source/ folder
+          const sourcePath = isBabelfish ? `${path}/source` : path
+          await processDir(sourcePath)
+
+          // Sort chapters by name
+          chapters.sort((a, b) => a.title.localeCompare(b.title))
         }
 
-        // For Babelfish, read from source/ folder
         const sourcePath = isBabelfish ? `${path}/source` : path
-        await processDir(sourcePath)
-
-        // Sort chapters by name
-        chapters.sort((a, b) => a.title.localeCompare(b.title))
-
         const book: Book = {
           id: path,
-          title: path.split(/[/\\]/).pop() || 'Book',
-          path: sourcePath,
+          title: bookTitle,
+          author: bookAuthor,
+          path: tocJson ? path : sourcePath,
           chapters,
           isBabelfish,
           translationPath: isBabelfish ? `${path}/translated` : undefined,
